@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>European Capitals Quiz</title>
+  <style>
+    :root {
+      --primary: #3498db;
+      --primary-dark: #2980b9;
+      --correct: #2ecc71;
+      --incorrect: #e74c3c;
+      --background: #f9f9f9;
+      --card: #ffffff;
+      --text: #2c3e50;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background-color: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      text-align: center;
+    }
+    
+    h1 {
+      margin-top: 0;
+      color: var(--primary-dark);
+      font-size: 28px;
+    }
+    
+    p {
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+    
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
+      font-weight: 600;
+    }
+    
+    .btn:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .btn:active {
+      transform: scale(0.98);
+    }
+    
+    .score {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    
+    .question {
+      font-size: 20px;
+      margin-bottom: 25px;
+      font-weight: 500;
+    }
+    
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+    
+    .option {
+      background-color: white;
+      border: 2px solid var(--primary);
+      border-radius: 6px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .option:hover {
+      background-color: rgba(52, 152, 219, 0.1);
+    }
+    
+    .option.correct {
+      background-color: var(--correct);
+      color: white;
+      border-color: var(--correct);
+    }
+    
+    .option.incorrect {
+      background-color: var(--incorrect);
+      color: white;
+      border-color: var(--incorrect);
+    }
+    
+    .game-over {
+      display: none;
+    }
+    
+    .flag {
+      width: 40px;
+      height: 26px;
+      vertical-align: middle;
+      margin-right: 10px;
+      border: 1px solid #ddd;
+    }
+    
+    .progress {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .progress-step {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: rgba(52, 152, 219, 0.2);
+      display: inline-block;
+    }
+    
+    .progress-step.active {
+      background-color: var(--primary);
+    }
+    
+    .progress-step.correct {
+      background-color: var(--correct);
+    }
+    
+    .progress-step.incorrect {
+      background-color: var(--incorrect);
+    }
+    
+    .feedback {
+      height: 24px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+    
+    .next-btn {
+      display: none;
+    }
+    
+    .intro-screen, .game-screen, .end-screen {
+      transition: opacity 0.3s ease;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Intro Screen -->
+    <div class="intro-screen" id="introScreen">
+      <h1>European Capitals Quiz</h1>
+      <p>Test your knowledge of European capital cities in this challenging quiz! You'll be presented with a country and need to choose the correct capital city from four options.</p>
+      <p>The quiz consists of 10 questions.</p>
+      <p>Are you ready to test your European geography knowledge?</p>
+      <button class="btn" id="startBtn">Start Quiz!</button>
+    </div>
+    
+    <!-- Game Screen -->
+    <div class="game-screen hidden" id="gameScreen">
+      <div class="progress" id="progress"></div>
+      <div class="score">Score: <span id="scoreValue">0</span>/10</div>
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn next-btn" id="nextBtn">Next Question</button>
+    </div>
+    
+    <!-- End Screen -->
+    <div class="end-screen hidden" id="endScreen">
+      <h1>Quiz Complete!</h1>
+      <p>Your final score:</p>
+      <div class="score" id="finalScore">0/10</div>
+      <p id="performanceText"></p>
+      <button class="btn" id="restartBtn">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    // European countries and their capitals (data from Wikipedia)
+    const europeData = [
+      {country: "Albania", capital: "Tirana", alternates: ["Durrës", "Shkodër", "Vlorë"]},
+      {country: "Andorra", capital: "Andorra la Vella", alternates: ["Escaldes-Engordany", "Sant Julià de Lòria", "La Massana"]},
+      {country: "Austria", capital: "Vienna", alternates: ["Salzburg", "Innsbruck", "Graz"]},
+      {country: "Belarus", capital: "Minsk", alternates: ["Brest", "Grodno", "Gomel"]},
+      {country: "Belgium", capital: "Brussels", alternates: ["Antwerp", "Bruges", "Ghent"]},
+      {country: "Bosnia and Herzegovina", capital: "Sarajevo", alternates: ["Mostar", "Banja Luka", "Tuzla"]},
+      {country: "Bulgaria", capital: "Sofia", alternates: ["Plovdiv", "Varna", "Burgas"]},
+      {country: "Croatia", capital: "Zagreb", alternates: ["Split", "Dubrovnik", "Rijeka"]},
+      {country: "Cyprus", capital: "Nicosia", alternates: ["Limassol", "Larnaca", "Paphos"]},
+      {country: "Czech Republic", capital: "Prague", alternates: ["Brno", "Ostrava", "Plzeň"]},
+      {country: "Denmark", capital: "Copenhagen", alternates: ["Aarhus", "Odense", "Aalborg"]},
+      {country: "Estonia", capital: "Tallinn", alternates: ["Tartu", "Narva", "Pärnu"]},
+      {country: "Finland", capital: "Helsinki", alternates: ["Tampere", "Turku", "Oulu"]},
+      {country: "France", capital: "Paris", alternates: ["Marseille", "Lyon", "Nice"]},
+      {country: "Germany", capital: "Berlin", alternates: ["Munich", "Hamburg", "Frankfurt"]},
+      {country: "Greece", capital: "Athens", alternates: ["Thessaloniki", "Patras", "Heraklion"]},
+      {country: "Hungary", capital: "Budapest", alternates: ["Debrecen", "Szeged", "Miskolc"]},
+      {country: "Iceland", capital: "Reykjavík", alternates: ["Akureyri", "Kópavogur", "Hafnarfjörður"]},
+      {country: "Ireland", capital: "Dublin", alternates: ["Cork", "Galway", "Belfast"]},
+      {country: "Italy", capital: "Rome", alternates: ["Milan", "Naples", "Florence"]},
+      {country: "Latvia", capital: "Riga", alternates: ["Daugavpils", "Liepāja", "Jūrmala"]},
+      {country: "Liechtenstein", capital: "Vaduz", alternates: ["Schaan", "Triesen", "Balzers"]},
+      {country: "Lithuania", capital: "Vilnius", alternates: ["Kaunas", "Klaipėda", "Šiauliai"]},
+      {country: "Luxembourg", capital: "Luxembourg City", alternates: ["Esch-sur-Alzette", "Differdange", "Dudelange"]},
+      {country: "Malta", capital: "Valletta", alternates: ["Birkirkara", "Qormi", "Sliema"]},
+      {country: "Moldova", capital: "Chișinău", alternates: ["Tiraspol", "Bălți", "Bender"]},
+      {country: "Monaco", capital: "Monaco", alternates: ["Monte Carlo", "La Condamine", "Fontvieille"]},
+      {country: "Montenegro", capital: "Podgorica", alternates: ["Nikšić", "Cetinje", "Budva"]},
+      {country: "Netherlands", capital: "Amsterdam", alternates: ["Rotterdam", "The Hague", "Utrecht"]},
+      {country: "North Macedonia", capital: "Skopje", alternates: ["Bitola", "Kumanovo", "Ohrid"]},
+      {country: "Norway", capital: "Oslo", alternates: ["Bergen", "Trondheim", "Stavanger"]},
+      {country: "Poland", capital: "Warsaw", alternates: ["Kraków", "Łódź", "Wrocław"]},
+      {country: "Portugal", capital: "Lisbon", alternates: ["Porto", "Braga", "Coimbra"]},
+      {country: "Romania", capital: "Bucharest", alternates: ["Cluj-Napoca", "Timișoara", "Iași"]},
+      {country: "Russia", capital: "Moscow", alternates: ["Saint Petersburg", "Novosibirsk", "Yekaterinburg"]},
+      {country: "San Marino", capital: "San Marino", alternates: ["Serravalle", "Borgo Maggiore", "Domagnano"]},
+      {country: "Serbia", capital: "Belgrade", alternates: ["Novi Sad", "Niš", "Kragujevac"]},
+      {country: "Slovakia", capital: "Bratislava", alternates: ["Košice", "Prešov", "Žilina"]},
+      {country: "Slovenia", capital: "Ljubljana", alternates: ["Maribor", "Celje", "Kranj"]},
+      {country: "Spain", capital: "Madrid", alternates: ["Barcelona", "Valencia", "Seville"]},
+      {country: "Sweden", capital: "Stockholm", alternates: ["Gothenburg", "Malmö", "Uppsala"]},
+      {country: "Switzerland", capital: "Bern", alternates: ["Zürich", "Geneva", "Basel"]},
+      {country: "Ukraine", capital: "Kyiv", alternates: ["Kharkiv", "Odesa", "Lviv"]},
+      {country: "United Kingdom", capital: "London", alternates: ["Edinburgh", "Manchester", "Birmingham"]},
+      {country: "Vatican City", capital: "Vatican City", alternates: ["Rome", "Florence", "Milan"]}
+    ];
+
+    // Additional wrong answers to make it harder (capital cities of other countries)
+    const otherCapitals = [
+      "Vienna", "Brussels", "Sofia", "Prague", "Copenhagen", "Tallinn", 
+      "Helsinki", "Paris", "Berlin", "Athens", "Budapest", "Reykjavík", 
+      "Dublin", "Rome", "Riga", "Vilnius", "Luxembourg City", "Valletta", 
+      "Amsterdam", "Oslo", "Warsaw", "Lisbon", "Bucharest", "Moscow", 
+      "Belgrade", "Bratislava", "Ljubljana", "Madrid", "Stockholm", "Bern", 
+      "Ankara", "London"
+    ];
+
+    // Game variables
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+    let questionsUsed = [];
+    
+    // DOM Elements
+    const introScreen = document.getElementById('introScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const endScreen = document.getElementById('endScreen');
+    const startBtn = document.getElementById('startBtn');
+    const questionElement = document.getElementById('question');
+    const optionsElement = document.getElementById('options');
+    const scoreElement = document.getElementById('scoreValue');
+    const finalScoreElement = document.getElementById('finalScore');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const progressElement = document.getElementById('progress');
+    const feedbackElement = document.getElementById('feedback');
+    const performanceTextElement = document.getElementById('performanceText');
+    
+    // Initialize the game
+    startBtn.addEventListener('click', startGame);
+    nextBtn.addEventListener('click', showNextQuestion);
+    restartBtn.addEventListener('click', startGame);
+    
+    // Generate quiz questions
+    function generateQuestions() {
+      questions = [];
+      questionsUsed = [];
+      
+      // Create progress indicators
+      progressElement.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const step = document.createElement('div');
+        step.classList.add('progress-step');
+        if (i === 0) step.classList.add('active');
+        progressElement.appendChild(step);
+      }
+      
+      // Generate 10 unique questions
+      while (questions.length < 10) {
+        // Get random country that hasn't been used yet
+        const randomIndex = Math.floor(Math.random() * europeData.length);
+        if (questionsUsed.includes(randomIndex)) continue;
+        
+        const countryData = europeData[randomIndex];
+        questionsUsed.push(randomIndex);
+        
+        // Generate options
+        let options = [countryData.capital];
+        
+        // Add some of the country's alternates
+        const shuffledAlternates = [...countryData.alternates].sort(() => 0.5 - Math.random());
+        options.push(shuffledAlternates[0]);
+        
+        // Get random capitals from other countries for harder difficulty
+        while (options.length < 4) {
+          const otherCapital = otherCapitals[Math.floor(Math.random() * otherCapitals.length)];
+          if (!options.includes(otherCapital) && otherCapital !== countryData.capital) {
+            options.push(otherCapital);
+          }
+        }
+        
+        // Shuffle options
+        options = options.sort(() => 0.5 - Math.random());
+        
+        questions.push({
+          country: countryData.country,
+          correctAnswer: countryData.capital,
+          options: options
+        });
+      }
+    }
+    
+    // Start the game
+    function startGame() {
+      introScreen.classList.add('hidden');
+      endScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      
+      // Reset game state
+      currentQuestion = 0;
+      score = 0;
+      scoreElement.textContent = score;
+      
+      // Generate new questions
+      generateQuestions();
+      
+      // Show first question
+      displayQuestion();
+    }
+    
+    // Display current question
+    function displayQuestion() {
+      // Reset state
+      answered = false;
+      feedbackElement.textContent = '';
+      nextBtn.style.display = 'none';
+      
+      const question = questions[currentQuestion];
+      
+      // Update question text
+      questionElement.textContent = `What is the capital city of ${question.country}?`;
+      
+      // Update progress indicator
+      const progressSteps = progressElement.querySelectorAll('.progress-step');
+      progressSteps.forEach((step, index) => {
+        step.classList.remove('active');
+        if (index === currentQuestion) {
+          step.classList.add('active');
+        }
+      });
+      
+      // Clear previous options
+      optionsElement.innerHTML = '';
+      
+      // Add options
+      question.options.forEach(option => {
+        const optionElement = document.createElement('div');
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => checkAnswer(option));
+        optionsElement.appendChild(optionElement);
+      });
+    }
+    
+    // Check if the answer is correct
+    function checkAnswer(selectedAnswer) {
+      if (answered) return;
+      
+      const question = questions[currentQuestion];
+      const isCorrect = selectedAnswer === question.correctAnswer;
+      answered = true;
+      
+      // Update progress indicator
+      const progressSteps = progressElement.querySelectorAll('.progress-step');
+      if (isCorrect) {
+        progressSteps[currentQuestion].classList.add('correct');
+        score++;
+        scoreElement.textContent = score;
+        feedbackElement.textContent = 'Correct!';
+        feedbackElement.style.color = 'var(--correct)';
+      } else {
+        progressSteps[currentQuestion].classList.add('incorrect');
+        feedbackElement.textContent = `Incorrect! The correct answer is ${question.correctAnswer}.`;
+        feedbackElement.style.color = 'var(--incorrect)';
+      }
+      
+      // Highlight correct and incorrect options
+      const options = optionsElement.querySelectorAll('.option');
+      options.forEach(option => {
+        if (option.textContent === question.correctAnswer) {
+          option.classList.add('correct');
+        } else if (option.textContent === selectedAnswer && selectedAnswer !== question.correctAnswer) {
+          option.classList.add('incorrect');
+        }
+        // Disable click events
+        option.style.pointerEvents = 'none';
+      });
+      
+      // Show next button or end game
+      if (currentQuestion < 9) {
+        nextBtn.style.display = 'inline-block';
+      } else {
+        // Game over
+        setTimeout(() => {
+          endGame();
+        }, 1500);
+      }
+    }
+    
+    // Show next question
+    function showNextQuestion() {
+      currentQuestion++;
+      displayQuestion();
+    }
+    
+    // End the game
+    function endGame() {
+      gameScreen.classList.add('hidden');
+      endScreen.classList.remove('hidden');
+      finalScoreElement.textContent = `${score}/10`;
+      
+      // Set performance message
+      if (score === 10) {
+        performanceTextElement.textContent = "Perfect score! You're a European capitals expert!";
+      } else if (score >= 8) {
+        performanceTextElement.textContent = "Great job! You really know your European geography!";
+      } else if (score >= 6) {
+        performanceTextElement.textContent = "Good work! You have solid knowledge of European capitals.";
+      } else if (score >= 4) {
+        performanceTextElement.textContent = "Not bad, but there's room for improvement!";
+      } else {
+        performanceTextElement.textContent = "Keep learning! European capitals can be tricky.";
+      }
+    }
+  </script>
+</body>
+</html>
